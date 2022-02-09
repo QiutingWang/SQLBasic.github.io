@@ -1,0 +1,277 @@
+##subqueries## IN,FROM,NOT IN,
+select column
+from (select column
+      from table) as subquery;
+--can be in any part of a query;
+--can return a variety of information:list,table
+
+#exclude the value use: not in// include use: in
+
+##subquery in FROM##
+##subquery in Select##--return a single value
+
+##correlated subqueries##
+--use values from outer query to give the final result;有main和subquery之分；
+--valuated in loops,dependent on the main query to execute;  but it slow down the query runtime
+SELECT 
+	-- Select country ID, date, home, and away goals from match
+	main.country_id,
+    main.date,
+    main.home_goal,
+    main.away_goal
+FROM match AS main
+WHERE 
+	-- Filter for matches with the highest number of goals scored
+	(home_goal + away_goal) =
+        (SELECT MAX(sub.home_goal + sub.away_goal)
+         FROM match AS sub
+         WHERE main.country_id = sub.country_id
+               AND main.season = sub.season);
+##nested subqueries##
+---subqueries inside another subquery
+--perform multiple layers of transfromation，using EXTRACT提取col中部分重要信息
+inner subquery/outer subquery
+--nested subquery should be correlated or uncorrelated or a comnination of two,can reference information from outer or main subquery
+
+####window function####
+#over()#
+--using the OVER() clause, instead of using subquery --pass the aggregate value over this existing result set;
+--eg:have a faster processing time and simple text
+select
+date,
+(home_goal+away_goal) as goals,
+avg(home_goal+away_goal) over() as overall_avg
+from match
+where season='2011/2012';
+
+#Generate a RANK:--numbering the dataset from highest to lowest or reverse, using RANK() function
+select
+date,
+(home_goal+away_goal) as goals,
+RANK() over(order by home_goal+away_goal) as goals_rank ---by default, it is ranking from smallest to largest values
+--or adding the DESC function after away_goal to reverse the order of the rank
+from match
+where season='2011/2012';
+--using the result set to calculate information, as opposed to using the database directly
+--window function is not avaliable in SQLite
+
+#OVER with a PARTITION#
+--partition by, allows you to calculate separate values for different categories estabilshed in a partition
+--calculate different calculations in the same column EG:
+AVG(home_goal) OVER(PARTITION BY season); #'season' is the column you want to partition the average by
+
+select
+date,
+(home_goal+away_goal) as goals,
+avg(home_goal+away_goal) over(PARTITION BY season) as season
+from match
+where season='2011/2012';
+#partition by multiple column--use comma to seperate
+
+#sliding window#
+ROW BETWEEN <START> AND <FINISH>
+
+PRECENDING
+FOLLOWING --specify the number of rows  before or after
+UNBOUNDED PRECEDING
+UNBOUNDED FOLLOWING 
+CURRENT ROW --you stop your calculation at the current row,from the CURRENT ROW to the end of the data set
+
+EG:
+select
+date,
+home_goal,
+away_goal,
+sum(home_goal)
+over (ORDER BY date ROWS BETWEEN
+     UNBOUNDED PRECEDING AND CURRENT ROW) as running_total
+FROM match
+WHERE ...
+
+
+
+##inner join:
+Select column_name1,
+     column_name2,
+     column_name3
+From table1
+     inner join table2 On table1.column_name = table2.column_name;
+#inner join with multiple table, in order to pre-qaulify the name;
+SELECT *
+FROM left_table
+  INNER JOIN right_table
+    ON left_table.id = right_table.id
+  INNER JOIN another_table
+    ON left_table.id = another_table.id; --or using();
+
+##Aliases and Self-join:
+#create Aliases
+#Select column_name
+From table_name AS alias_name;
+##self-join--join the table to itself
+#select column_name             ##have your column name,going to do is to list where is you coming from
+from table T1,
+     table T2
+Where condition;
+##left, right, full outer join:
+#SQL lite only does left join
+#Left join: return all records from table1 and matched records from right table
+Select column_name1,
+     column_name2
+from table1
+     left join table2 on table1.columnname = table2.columnname
+order by....;
+#Right join:return all records from right table and matched records from left table
+#the difference between left join and right join is the order the tables are relating
+#Full outer join: give me everything
+##Unions: vertical combination
+#each selected statement within UNION must have the same number of columns, similar data type
+#the columns in each SELECT satatment must be in the same order
+#select column_name From table1
+Union
+select column_name
+From table2;
+##working with text string,combine the data from multiple sources,rethrieve the data in the format you need,support joins
+#string functions: 
+Concatenate: linking things together Substring Trim :trim the beginning
+and ending of the string Upper Lower #Concatenate: SQL server supports + instead of ||
+Select CompanyName,
+     ContactName,
+     CompanyName || '(' || ContactName || ')' #we want to connect company name and contact name together
+From customers #Trimming Strings: trims the leading or tailing space from a string
+     Trim RTRIM LTRIM
+select TRIM (' You are the best. ') AS TrimmedString;
+#Substring:return the specified number of characters from a particular position of a given string
+substr(
+     string name,
+     string position,
+     number of characters to be returned
+);
+#string的内容，string开始的位置，string的数量多少
+select first_name,
+     substr(first_name, 3, 4)
+from employees
+where department_id = 100;
+#upper and lower 改变字符的大小写
+select upper(column_name)
+from table_name;
+select lower(column_name)
+from table_name;
+select ucase(column_name)
+from table_name;
+
+#view:
+#select*
+from my_view
+drop VIEW my_view
+#get a count of how many territories each employee has
+#data governance and profiling: descriptive statistics and object data information-examining data for completness and accuracy
+Number of rows/table size/when the object was last updated
+#column data profile:column data type,number of distinct values,number of rows with null values
+
+#using SQL for data science#
+
+#Distinct for delect duplicates
+SELECT DISTINCT language
+FROM films;
+
+#count:
+select count(*) #for non-missing values
+from reviews;
+
+#count+distinct
+select count(distinct col_name)
+from tablename;
+
+#in operator
+Enter the IN operator! The IN operator allows you to specify multiple values in a WHERE clause, making it easier and quicker to specify multiple OR conditions! 
+SELECT name
+FROM kids
+WHERE age = 2
+OR age = 4
+OR age = 6
+OR age = 8
+OR age = 10;
+
+SELECT name
+FROM kids
+WHERE age IN (2, 4, 6, 8, 10);
+
+#--NULL & IS NULl
+In SQL, NULL represents a missing or unknown value. You can check for NULL values using the expression IS NULL. For example, to count the number of missing birth dates in the people table:
+SELECT COUNT(*)
+FROM people
+WHERE birthdate IS NULL;
+
+##like and not like:
+#%:
+The % wildcard will match zero, one, or many characters in text.
+SELECT name
+FROM companies
+WHERE name LIKE 'Data%';
+#_:The _ wildcard will match a single character.
+SELECT name
+FROM companies
+WHERE name LIKE 'DataC_mp';
+#--You can also use the NOT LIKE operator to find records that don't match the pattern you specify.
+#--Aliasing simply means you assign a temporary name to something. To alias, you use the AS keyword.
+
+#By default ORDER BY will sort in ascending order
+ORDER BY can also be used to sort on multiple columns. It will sort by the first column specified, then sort by the next, then the next, and so on.
+--The order of columns is important!
+
+##group by##
+combining aggregate functions with GROUP BY can yield some powerful results
+Make sure to always put the ORDER BY clause at the end of your query.
+
+#limit
+if you only want to return a certain number of results, you can use the LIMIT keyword to limit the number of rows returned
+
+
+#大写
+#working with date and time strings:dates for different time series analysis, the data format of the date is important when you clustering the data
+DATE(timestring, modifier1, modifier2...) TIME(timestring, modifier1, modifier2...) DATETIME(timestring, modifier1, modifier2...) JULIANDAY(timestring, modifier1, modifier2...) STRFTIME(format, timestring, modifier1, modifier2...) #string format time function, to extract certain elements of a date/time string
+#to compute the current date
+SELECT DATE('now') #compute the year, month, and day for the current date
+select strftime(
+'%Y %M %D,'now') 
+#compute the hour,minute, and second and milliseconds from current DATETIME
+select strftime(' %Y %M %S %s ',' now ')
+
+#example:compute age using birthdate
+select Birthdate,
+strftime(' %Y ' ,Birthdate) AS Year,
+strftime(' %M ' ,Birthdate) AS Month,
+strftime(' %D ' ,Birthdate) AS Day,
+DATE((' now '-Birthdate)) AS Age
+FROM employees;
+
+#case statement
+if-then-else programming language
+#the model:#
+CASE
+WHEN C1 THEN E1
+WHEN C2 THEN E2
+...
+ELSE [result else]
+END 
+#model for case
+Case input_expression
+     When when_expression Then result_expression[...n]
+     [Else else_result_expression]
+End 
+
+AVG(CASE WHEN condition_is_met THEN 1
+         WHEN condition_is_not_met THEN 0 END)
+
+#Search Case Statement:add a couple of cases together
+
+#Views
+create [temp] view [if not exists]
+view_name(column-name-list)
+AS 
+select-statement
+#a stored query;can add or remove columns without changing schema;use it to encapsulate queries;the view will be remove 
+#after the database connection has end
+
+
